@@ -53,7 +53,7 @@ class ClinicDataAccess:
                 SUM(CASE WHEN status = 'No-show' THEN 1 ELSE 0 END) as noshow_today
             FROM appointments 
             WHERE appointment_date = ?
-        """, (today,))
+        """, (today.isoformat(),))
 
         today_stats = cursor.fetchone()
 
@@ -66,7 +66,7 @@ class ClinicDataAccess:
             WHERE appointment_date >= ? 
             AND appointment_date <= ?
             AND status = 'Completed'
-        """, (week_start, today))
+        """, (week_start.isoformat(), today.isoformat()))
 
         weekly_stats = cursor.fetchone()
 
@@ -82,7 +82,7 @@ class ClinicDataAccess:
                 AND a.status IN ('Completed', 'Scheduled', 'In-progress')
             WHERE t.is_active = 1
             GROUP BY t.therapist_id, t.first_name, t.last_name, t.max_patients_per_day
-        """, (today,))
+        """, (today.isoformat(),))
 
         therapist_utilization = [dict(row) for row in cursor.fetchall()]
 
@@ -105,7 +105,7 @@ class ClinicDataAccess:
                 ROUND(SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as cancellation_rate
             FROM appointments 
             WHERE appointment_date >= ?
-        """, (thirty_days_ago,))
+        """, (thirty_days_ago.isoformat(),))
 
         cancellation_stats = cursor.fetchone()
 
@@ -290,9 +290,9 @@ class ClinicDataAccess:
         WHERE a.status IN ('Completed', 'Cancelled', 'No-show')
         ORDER BY a.appointment_date DESC
         """
-        
+
         return pd.read_sql_query(query, self.conn)
-    
+
     def get_reception_workflow_data(self) -> Dict[str, Any]:
         """
         Get reception workflow metrics for automation demo.
@@ -301,7 +301,7 @@ class ClinicDataAccess:
             Dict[str, Any]: Reception workflow statistics
         """
         cursor = self.conn.cursor()
-        
+
         # Task completion metrics
         cursor.execute("""
             SELECT 
@@ -314,9 +314,9 @@ class ClinicDataAccess:
             GROUP BY task_type
             ORDER BY total_tasks DESC
         """)
-        
+
         task_metrics = [dict(row) for row in cursor.fetchall()]
-        
+
         # Priority distribution
         cursor.execute("""
             SELECT 
@@ -327,9 +327,9 @@ class ClinicDataAccess:
             GROUP BY priority 
             ORDER BY priority
         """)
-        
+
         priority_distribution = [dict(row) for row in cursor.fetchall()]
-        
+
         # Daily task volume
         cursor.execute("""
             SELECT 
@@ -341,15 +341,15 @@ class ClinicDataAccess:
             GROUP BY DATE(created_at)
             ORDER BY task_date DESC
         """)
-        
+
         daily_volume = [dict(row) for row in cursor.fetchall()]
-        
+
         return {
             'task_metrics': task_metrics,
             'priority_distribution': priority_distribution,
             'daily_volume': daily_volume
         }
-    
+
     def get_revenue_analytics(self, period_days: int = 30) -> Dict[str, Any]:
         """
         Get revenue analytics for business intelligence.
@@ -362,7 +362,7 @@ class ClinicDataAccess:
         """
         start_date = datetime.now().date() - timedelta(days=period_days)
         cursor = self.conn.cursor()
-        
+
         # Revenue by treatment type
         cursor.execute("""
             SELECT 
@@ -377,10 +377,10 @@ class ClinicDataAccess:
             AND a.status = 'Completed'
             GROUP BY t.treatment_id, t.treatment_name, t.category
             ORDER BY total_revenue DESC
-        """, (start_date,))
-        
+        """, (start_date.isoformat(),))
+
         revenue_by_treatment = [dict(row) for row in cursor.fetchall()]
-        
+
         # Revenue by therapist
         cursor.execute("""
             SELECT 
@@ -394,10 +394,10 @@ class ClinicDataAccess:
             AND a.status = 'Completed'
             GROUP BY th.therapist_id, th.first_name, th.last_name
             ORDER BY total_revenue DESC
-        """, (start_date,))
-        
+        """, (start_date.isoformat(),))
+
         revenue_by_therapist = [dict(row) for row in cursor.fetchall()]
-        
+
         # Insurance vs self-pay breakdown
         cursor.execute("""
             SELECT 
@@ -409,7 +409,7 @@ class ClinicDataAccess:
             WHERE appointment_date >= ? 
             AND status = 'Completed'
             GROUP BY insurance_covered
-        """, (start_date,))
+        """, (start_date.isoformat(),))
 
         payment_breakdown = [dict(row) for row in cursor.fetchall()]
 
