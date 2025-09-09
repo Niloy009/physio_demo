@@ -535,11 +535,19 @@ class ClinicDataGenerator:
                     emergency_phone, notes)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
-                    patient['first_name'], patient['last_name'], patient['email'],
-                    patient['phone'], patient['date_of_birth'], patient['gender'],
-                    patient['address'], patient['insurance_type'], patient['primary_condition'],
-                    patient['registration_date'], patient['emergency_contact'],
-                    patient['emergency_phone'], patient['notes']
+                    patient['first_name'],
+                    patient['last_name'],
+                    patient['email'],
+                    patient['phone'],
+                    patient['date_of_birth'].isoformat(),
+                    patient['gender'],
+                    patient['address'],
+                    patient['insurance_type'],
+                    patient['primary_condition'],
+                    patient['registration_date'].isoformat(),
+                    patient['emergency_contact'],
+                    patient['emergency_phone'],
+                    patient['notes']
                 ))
 
             # Insert therapists
@@ -551,10 +559,18 @@ class ClinicDataGenerator:
                     start_time, end_time, is_active)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
-                    therapist['first_name'], therapist['last_name'], therapist['email'],
-                    therapist['phone'], therapist['specialization'], therapist['license_number'],
-                    therapist['hire_date'], therapist['hourly_rate'], therapist['max_patients_per_day'],
-                    therapist['working_days'], therapist['start_time'], therapist['end_time'],
+                    therapist['first_name'],
+                    therapist['last_name'],
+                    therapist['email'],
+                    therapist['phone'],
+                    therapist['specialization'],
+                    therapist['license_number'],
+                    therapist['hire_date'].isoformat(),
+                    therapist['hourly_rate'],
+                    therapist['max_patients_per_day'],
+                    therapist['working_days'],
+                    therapist['start_time'],
+                    therapist['end_time'],
                     therapist['is_active']
                 ))
 
@@ -568,12 +584,23 @@ class ClinicDataGenerator:
                     treatment_start_time, treatment_end_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
-                    apt['patient_id'], apt['therapist_id'], apt['treatment_id'],
-                    apt['appointment_date'], apt['appointment_time'], apt['duration_minutes'],
-                    apt['status'], apt['booking_date'], apt['booking_method'], apt['price'],
-                    apt['insurance_covered'], apt['copay_amount'], apt['notes'],
-                    apt['reminder_sent'], apt.get('check_in_time'), 
-                    apt.get('treatment_start_time'), apt.get('treatment_end_time')
+                    apt['patient_id'],
+                    apt['therapist_id'],
+                    apt['treatment_id'],
+                    apt['appointment_date'].isoformat(),
+                    apt['appointment_time'].isoformat(),
+                    apt['duration_minutes'],
+                    apt['status'],
+                    apt['booking_date'].isoformat(),
+                    apt['booking_method'],
+                    apt['price'],
+                    apt['insurance_covered'],
+                    apt['copay_amount'],
+                    apt['notes'],
+                    apt['reminder_sent'],
+                    apt.get('check_in_time').isoformat() if apt.get('check_in_time') else None,
+                    apt.get('treatment_start_time').isoformat() if apt.get('treatment_start_time') else None,
+                    apt.get('treatment_end_time').isoformat() if apt.get('treatment_end_time') else None
                 ))
 
             # Insert cancellations
@@ -584,9 +611,14 @@ class ClinicDataGenerator:
                     reason_category, reason_detail, refund_issued, refund_amount, rescheduled)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
-                    cancel['appointment_id'], cancel['cancelled_by'], cancel['cancellation_date'],
-                    cancel['hours_before_appointment'], cancel['reason_category'],
-                    cancel['reason_detail'], cancel['refund_issued'], cancel['refund_amount'],
+                    cancel['appointment_id'],
+                    cancel['cancelled_by'],
+                    cancel['cancellation_date'].isoformat(),
+                    cancel['hours_before_appointment'],
+                    cancel['reason_category'],
+                    cancel['reason_detail'],
+                    cancel['refund_issued'],
+                    cancel['refund_amount'],
                     cancel['rescheduled']
                 ))
 
@@ -599,10 +631,18 @@ class ClinicDataGenerator:
                     completed_date, notes, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
-                    task['task_type'], task['patient_id'], task['appointment_id'],
-                    task['priority'], task['status'], task['assigned_to'],
-                    task['estimated_duration_minutes'], task['actual_duration_minutes'],
-                    task['due_date'], task['completed_date'], task['notes'], task['created_at']
+                    task['task_type'],
+                    task['patient_id'],
+                    task['appointment_id'],
+                    task['priority'],
+                    task['status'],
+                    task['assigned_to'],
+                    task['estimated_duration_minutes'],
+                    task['actual_duration_minutes'],
+                    task['due_date'].isoformat(),
+                    task['completed_date'].isoformat() if task['completed_date'] else None,
+                    task['notes'],
+                    task['created_at'].isoformat()
                 ))
 
             self.conn.commit()
@@ -625,7 +665,7 @@ class ClinicDataGenerator:
         print("[INFO] Generating patients...")
         patients = self.generate_patients(500)
 
-        # Generate therapists 
+        # Generate therapists
         print("🧑[INFO] Generating therapists...")
         therapists = self.generate_therapists(6)
 
@@ -651,6 +691,9 @@ class ClinicDataGenerator:
             patient_ids, therapist_ids, treatment_ids, 3000
         )
 
+        print("[INFO] Inserting appointments and cancellations...")
+        self.insert_data_to_database([], [], appointments, cancellations, [])
+
         # Generate reception tasks
         print("[INFO] Generating reception tasks...")
         cursor.execute("SELECT appointment_id FROM appointments")
@@ -658,8 +701,8 @@ class ClinicDataGenerator:
         reception_tasks = self.generate_reception_tasks(appointment_ids, patient_ids)
 
         # Insert remaining data
-        print("[INFO] Inserting remaining data...")
-        self.insert_data_to_database([], [], appointments, cancellations, reception_tasks)
+        print("[INFO] Inserting receptions tasks...")
+        self.insert_data_to_database([], [], [], [], reception_tasks)
 
         print("[INFO] Data generation complete!")
         self._print_summary_statistics()
